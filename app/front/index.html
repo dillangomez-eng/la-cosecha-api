@@ -756,11 +756,10 @@
   /* =========================================================
      CONFIGURACIÓN
      ========================================================= */
-  // Cambia esta URL por la de TU API cuando la publiques en Render.
-  const API_PRODUCCION = "https://la-cosecha-api.onrender.com";
-
+  // En Render el HTML lo sirve la misma API (mismo origen). En local el front suele ir en :5500 y la API en :8000.
+  // Si alojás el front aparte, pasá la API con ?api=https://tu-api.onrender.com
   const ES_LOCAL = ["127.0.0.1", "localhost", ""].includes(location.hostname);
-  const API = (new URLSearchParams(location.search).get("api") || (ES_LOCAL ? "http://127.0.0.1:8000" : API_PRODUCCION)).replace(/\/$/, "");
+  const API = (new URLSearchParams(location.search).get("api") || (ES_LOCAL ? "http://127.0.0.1:8000" : "")).replace(/\/$/, "");
   const ESPERA_CONEXION = ES_LOCAL ? 2500 : 75000;
   const STOCK_BAJO = 5;
 
@@ -1196,7 +1195,7 @@
     if (nuevo === "api"){
       caja.classList.add("api");
       $("con-titulo").textContent = "API conectada";
-      $("con-detalle").textContent = API.replace(/^https?:\/\//, "");
+      $("con-detalle").textContent = (API || location.origin).replace(/^https?:\/\//, "");
       aviso.hidden = true;
     } else {
       caja.classList.add("demo");
@@ -1209,7 +1208,7 @@
           ? `Para conectar: (1) arranca el backend con <code>fastapi dev app/main.py</code>;
         (2) abre esta página con un servidor en el puerto 5500, por ejemplo <code>py -m http.server 5500</code> desde la carpeta <code>front</code>, y entra a <code>http://127.0.0.1:5500/</code>;
         (3) el backend debe permitir ese origen con <b>CORS</b>.`
-          : `La API publicada es <code>${esc(API)}</code>. Revisa que el servicio en Render esté desplegado y que su variable <code>CORS_ORIGINS</code> incluya <code>${esc(location.origin)}</code>.`}
+          : `Se intenta conectar a <code>${esc(API || location.origin)}</code>. Si el servicio en Render estaba dormido, espera ~1 minuto y pulsa ↻.`}
         Luego pulsa ↻. En modo demostración entra como <b>Marta</b> (admin) o <b>Laura</b> (vendedora) con los botones del inicio de sesión.</span>`;
     }
   }
@@ -1223,14 +1222,14 @@
     const espera = setTimeout(() => controlador.abort(), ESPERA_CONEXION);
     const inicio = performance.now();
     try {
-      const res = await fetch(API + "/", { signal: controlador.signal });
+      const res = await fetch(API + "/salud", { signal: controlador.signal });
       clearTimeout(espera);
       const datos = await res.json();
-      registrar("GET", "/", undefined, res.status, datos, Math.round(performance.now() - inicio));
+      registrar("GET", "/salud", undefined, res.status, datos, Math.round(performance.now() - inicio));
       ponerModo("api");
     } catch (e) {
       clearTimeout(espera);
-      registrar("GET", "/", undefined, 0, null, Math.round(performance.now() - inicio));
+      registrar("GET", "/salud", undefined, 0, null, Math.round(performance.now() - inicio));
       ponerModo("demo");
     }
     await restaurarSesion();
